@@ -1,11 +1,12 @@
+.git/
+.gitignore
+*.md
 .env
 *.env
 __pycache__/
 *.pyc
 venv*/
-env/
 .vscode/
 .idea/
-.DS_Store
 gather_files.py
 *_project_structure.txt

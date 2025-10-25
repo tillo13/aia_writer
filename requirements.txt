@@ -2,3 +2,4 @@ flask
 anthropic
 google-cloud-secret-manager
 replicate
+gunicorn==21.2.0
