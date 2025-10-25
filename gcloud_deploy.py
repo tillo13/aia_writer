@@ -153,8 +153,20 @@ def deploy_app():
     print_separator()
     print(f"Deployment completed in {execution_time:.2f} seconds.")
     print(f"Your app is now live at:")
-    print(f"  - https://{EXPECTED_PROJECT_ID}.wm.r.appspot.com")
+    print(f"  - https://{EXPECTED_PROJECT_ID}.uc.r.appspot.com")
     print_separator()
+    
+    print("\nTailing logs... (Press Ctrl+C to stop)")
+    try:
+        subprocess.run([
+            "gcloud", "app", "logs", "tail",
+            "--service", SERVICE_NAME,
+            "--project", EXPECTED_PROJECT_ID
+        ])
+    except KeyboardInterrupt:
+        print("\n\nStopped tailing logs.")
+        print(f"\nDeployment complete. You can restart log tailing anytime with:")
+        print(f"gcloud app logs tail --service {SERVICE_NAME} --project {EXPECTED_PROJECT_ID}")
 
 if __name__ == "__main__":
     deploy_app()
