@@ -8,7 +8,8 @@ MODELS = {
     "gpt-4o-mini": {"id": "openai/gpt-4o-mini", "name": "GPT-4o Mini", "description": "Fast", "pricing": {"input": 0.15, "output": 0.60}},
     "gpt-5-mini": {"id": "openai/gpt-5-mini", "name": "GPT-5 Mini", "description": "Balanced", "pricing": {"input": 0.25, "output": 2.00}},
     "gemini-2.5-flash": {"id": "google/gemini-2.5-flash", "name": "Gemini 2.5 Flash", "description": "Google fast", "pricing": {"input": 2.50, "output": 2.50}},
-    "gpt-5": {"id": "openai/gpt-5", "name": "GPT-5", "description": "Excellent", "pricing": {"input": 1.25, "output": 10.00}}
+    "gpt-5": {"id": "openai/gpt-5", "name": "GPT-5", "description": "Excellent", "pricing": {"input": 1.25, "output": 10.00}},
+    "claude-4.5-sonnet": {"id": "anthropic/claude-4.5-sonnet", "name": "Claude 4.5 Sonnet (Replicate)", "description": "Claude via Replicate - speed test", "pricing": {"input": 3.00, "output": 15.00}}
 }
 
 def get_client():
