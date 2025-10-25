@@ -245,11 +245,13 @@ body {
     border: 1px solid var(--border-color);
     overflow: hidden;
     transition: all var(--transition-base);
+}
+
+.section:not([style*="display: block"]) {
     display: none;
 }
 
-.section.visible {
-    display: block;
+.section[style*="display: block"] {
     animation: fadeInUp 0.5s ease;
 }
 
@@ -299,7 +301,7 @@ body {
 }
 
 .section-content.open {
-    max-height: 3000px;
+    max-height: 5000px;
 }
 
 .section-content>div,
@@ -447,9 +449,16 @@ body {
     margin-bottom: var(--spacing-md);
 }
 
-.model-options button {
+.model-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.model-options button,
+.model-btn {
     padding: var(--spacing-sm) var(--spacing-md);
-    margin: var(--spacing-xs);
+    margin: 0;
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border: 2px solid var(--border-color);
@@ -458,9 +467,14 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-base);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
 }
 
-.model-options button:hover {
+.model-options button:hover,
+.model-btn:hover {
     background: var(--primary-gradient);
     color: white;
     border-color: transparent;
@@ -468,7 +482,8 @@ body {
     box-shadow: var(--shadow-md);
 }
 
-.model-options button:active {
+.model-options button:active,
+.model-btn:active {
     transform: translateY(0);
 }
 

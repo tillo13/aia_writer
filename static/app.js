@@ -58,17 +58,18 @@ async function getNews() {
     return result;
 }
 
+// FIXED TOGGLE FUNCTION - Works with new CSS
 function toggle(id) {
-    let c = document.getElementById(id + '-content'),
-        i = document.getElementById(id + '-icon');
-    // Check computed style, not inline style
-    let isHidden = window.getComputedStyle(c).display === 'none';
-    if (isHidden) {
-        c.style.display = 'block';
-        i.textContent = '▼';
+    let content = document.getElementById(id + '-content');
+    let icon = document.getElementById(id + '-icon');
+
+    // Toggle the 'open' class
+    if (content.classList.contains('open')) {
+        content.classList.remove('open');
+        icon.textContent = '▶';
     } else {
-        c.style.display = 'none';
-        i.textContent = '▶';
+        content.classList.add('open');
+        icon.textContent = '▼';
     }
 }
 
@@ -118,7 +119,17 @@ async function analyze() {
         // Display JSON without code fence
         let styleText = typeof sty === 'string' ? sty : JSON.stringify(sty, null, 2);
         document.getElementById('style-json').textContent = styleText;
-        document.getElementById('style-section').style.display = 'block';
+
+        // Show the section
+        let styleSection = document.getElementById('style-section');
+        styleSection.style.display = 'block';
+
+        // Auto-open the content
+        let styleContent = document.getElementById('style-content');
+        let styleIcon = document.getElementById('style-icon');
+        styleContent.classList.add('open');
+        styleIcon.textContent = '▼';
+
         s.innerHTML = `<p style="color: #10b981;">✅ Style analysis complete! (${(totalAnalyzeTime / 1000).toFixed(2)}s)</p>`;
 
         // Use prefetched news
@@ -134,7 +145,17 @@ async function analyze() {
 
         let nt = document.getElementById('news-text');
         nt.innerHTML = nws.split('\n\n').map(p => `<p>${p}</p>`).join('');
-        document.getElementById('news-section').style.display = 'block';
+
+        // Show news section
+        let newsSection = document.getElementById('news-section');
+        newsSection.style.display = 'block';
+
+        // Auto-open news content
+        let newsContent = document.getElementById('news-content');
+        let newsIcon = document.getElementById('news-icon');
+        newsContent.classList.add('open');
+        newsIcon.textContent = '▼';
+
         document.getElementById('cta-box').style.display = 'block';
 
     } catch (e) {
@@ -195,8 +216,8 @@ async function showModelOptions() {
         let data = await r.json();
 
         let html = `
-            <h4>✨ Want to see how other AI models would write this?</h4>
-            <p>Compare different models' interpretations of your style:</p>
+            <h3>✨ Want to see how other AI models would write this?</h3>
+            <p style="margin-bottom: var(--spacing-md); color: var(--text-secondary);">Compare different models' interpretations of your style:</p>
             <div class="model-buttons">
         `;
 
@@ -204,7 +225,7 @@ async function showModelOptions() {
             html += `
                 <button class="model-btn" onclick="restyleWithModel('${model.key}')">
                     <strong>${model.name}</strong>
-                    <span>${model.description}</span>
+                    <span style="font-size: 0.875rem; color: var(--text-secondary);">${model.description}</span>
                 </button>
             `;
         }
@@ -220,6 +241,11 @@ async function showModelOptions() {
 }
 
 async function restyleWithModel(modelKey) {
+    if (!sty || !nws) {
+        alert('Please analyze files first!');
+        return;
+    }
+
     let container = document.getElementById('alt-models-output');
     container.style.display = 'block';
 
