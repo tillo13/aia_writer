@@ -254,14 +254,6 @@ Output ONLY the rewritten article, no explanations."""
 def available_models():
     logger.info("📋 /available_models called")
     models = get_models()
-    
-    # Add Replicate's Claude 4.5 Sonnet for comparison
-    models.append({
-        'key': 'claude-4.5-sonnet',
-        'name': 'Claude 4.5 Sonnet (Replicate)',
-        'description': 'Claude via Replicate - testing speed vs direct API'
-    })
-    
     logger.info(f"✅ Returning {len(models)} models")
     return jsonify({'models':models})
 
