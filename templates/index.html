@@ -3,54 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIA - Article Writer</title>
+    <title>AIA — AI Article Writer</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>">
 </head>
 <body>
     <div class="container">
-        <h1>AIA</h1>
-        <p class="subtitle">Upload your writing style. Pick a topic. Get articles in your voice.</p>
+        <header class="hero">
+            <h1>AIA</h1>
+            <p class="subtitle">Transform any topic into articles that sound like you</p>
+        </header>
 
         <form id="mainForm">
             <!-- Step 1: Topic -->
-            <div class="step" id="step1">
-                <h2>1. What do you want to write about?</h2>
+            <div class="card fade-in" id="step1">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Choose your topic</div>
+                </div>
                 <div class="topics">
                     {% for key, label in topics.items() %}
-                    <label class="topic-option">
+                    <label class="topic-pill">
                         <input type="radio" name="topic" value="{{ key }}">
                         <span>{{ key|title }}</span>
                     </label>
                     {% endfor %}
-                    <label class="topic-option custom">
+                    <label class="topic-pill">
                         <input type="radio" name="topic" value="custom">
-                        <span>Custom</span>
+                        <span>Custom ✦</span>
                     </label>
                 </div>
-                <input type="text" id="customTopic" name="custom_topic" placeholder="e.g., servicenow merger" style="display:none">
-                <button type="button" onclick="nextStep()">Next</button>
+                <input type="text" id="customTopic" name="custom_topic" placeholder="e.g., servicenow merger, openai drama..." class="hidden">
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-primary" onclick="nextStep()">Continue</button>
+                </div>
             </div>
 
             <!-- Step 2: Upload -->
-            <div class="step hidden" id="step2">
-                <h2>2. Upload your writing samples</h2>
-                <p class="hint">2-5 samples: blog posts, emails, docs (PDF, TXT, images)</p>
-                <input type="file" name="files" id="files" multiple accept=".pdf,.txt,.md,.doc,.docx,.jpg,.jpeg,.png">
-                <div id="fileList"></div>
-                <div id="status" class="hidden">Finding articles on <span id="topicDisplay"></span>...</div>
-                <button type="submit">Generate Articles</button>
+            <div class="card fade-in hidden" id="step2">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Upload your writing samples</div>
+                </div>
+                <div class="upload-zone" id="dropZone">
+                    <div class="upload-icon">📄</div>
+                    <p class="upload-text"><strong>Drop files here</strong> or click to browse</p>
+                    <p class="upload-text" style="font-size: 0.8rem; margin-top: 8px;">PDF, TXT, MD, DOC — 2-5 samples work best</p>
+                </div>
+                <input type="file" name="files" id="files" class="file-input" multiple accept=".pdf,.txt,.md,.doc,.docx">
+                <div class="file-list" id="fileList"></div>
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary">Generate Articles ✨</button>
+                </div>
             </div>
         </form>
 
-        <!-- Results -->
-        <div id="results" class="hidden">
-            <h2>Your Articles</h2>
-            <div id="articles"></div>
-            <button onclick="reset()">Start Over</button>
+        <!-- Loading -->
+        <div class="card hidden" id="loading">
+            <div class="loading-container">
+                <div class="loader"></div>
+                <p class="loading-text" id="loadingText">Searching the web...</p>
+                <p class="loading-subtext" id="loadingSubtext">Finding the freshest stories on your topic</p>
+                <div class="progress-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
         </div>
 
-        <div id="error" class="hidden"></div>
+        <!-- Results -->
+        <div id="results" class="hidden">
+            <div class="step-header" style="margin-bottom: 24px;">
+                <div class="step-number">✓</div>
+                <div class="step-title">Your articles are ready</div>
+            </div>
+            <div id="articles"></div>
+            <div class="text-center mt-4">
+                <button type="button" class="btn btn-secondary" onclick="reset()">Start Over</button>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div class="error-card hidden" id="error"></div>
     </div>
+
     <script src="/static/app.js"></script>
 </body>
 </html>
