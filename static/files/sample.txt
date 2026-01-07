@@ -1,0 +1,37 @@
+TLDR: After testing both approaches, the GPU method delivered 67x faster processing for just $1 more. Here's what I learned.
+
+I've been diving deep into local AI inference lately, and one question kept nagging at me: is it actually worth investing in GPU acceleration for smaller models? The conventional wisdom says "obviously yes," but I wanted real numbers.
+
+My test setup:
+- AMD Ryzen 7 1800X, 32GB RAM, RTX 3060
+- Python 3.11, CUDA 11.8
+- Testing both CPU-only and GPU-accelerated inference
+
+The kicker is that the performance difference wasn't just incremental—it was transformational. We're talking ~21.46 hours vs 19.33 minutes for the same workload. That's a 6800% speed increase.
+
+Here's what actually happened when I ran the benchmarks:
+
+The CPU approach worked fine for small batches. If you're processing a handful of documents, the ~$0.77 cost per session is hard to beat. But the moment you scale up, you're watching progress bars for literal days.
+
+Switching to GPU changed everything. The initial setup took about an hour (driver issues, naturally), but once it was running? Smooth sailing. Cost bumped to ~$1.62 per session, but the time savings more than justified it.
+
+Some gotchas I discovered along the way:
+- Memory management matters more than raw VRAM. I hit OOM errors until I properly batched my inputs.
+- Keep DevTools open as much as you can—you'll catch issues early.
+- Be explicit in your configurations. Don't assume defaults will work.
+
+Decision framework for choosing your approach:
+
+Use CPU when:
+- Processing small batches (<100 items)
+- Budget is extremely tight
+- You're not time-constrained
+
+Use GPU when:
+- Processing large batches
+- Time-to-completion matters
+- You have even a modest dedicated GPU
+
+Your mileage may vary depending on your specific hardware and workload characteristics. I'd love to hear how this works in your setup.
+
+The full code and benchmarks are in the repo. Feel free to use this in your own projects—should be fun to see what optimizations others discover.

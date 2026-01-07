@@ -12,8 +12,8 @@ const submitBtn = $('submitBtn');
 const loadingTitle = $('loadingTitle');
 const loadingDesc = $('loadingDesc');
 const articlesContainer = $('articlesContainer');
+const useSampleStyle = $('useSampleStyle');
 
-let selectedTopic = null;
 let hasFiles = false;
 
 const loadingSteps = [
@@ -23,40 +23,48 @@ const loadingSteps = [
     { title: 'Verifying sources', desc: 'Ensuring all citations are valid' },
 ];
 
-// Topic selection
+// Topic quick-select buttons
 document.querySelectorAll('.topic-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+        // Toggle selection
+        const wasSelected = btn.classList.contains('selected');
         document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        selectedTopic = btn.dataset.topic;
-        topicInput.value = selectedTopic;
 
-        if (selectedTopic === 'custom') {
-            customTopic.classList.remove('hidden');
-            customTopic.focus();
-        } else {
-            customTopic.classList.add('hidden');
-            customTopic.value = '';
+        if (!wasSelected) {
+            btn.classList.add('selected');
+            customTopic.value = btn.dataset.topic.charAt(0).toUpperCase() + btn.dataset.topic.slice(1) + ' news';
         }
         updateSubmitState();
     });
 });
+
+// Custom topic input
+customTopic.addEventListener('input', () => {
+    document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('selected'));
+    updateSubmitState();
+});
+
+// Sample style checkbox
+useSampleStyle.addEventListener('change', updateSubmitState);
 
 // File upload
 $('uploadArea').addEventListener('click', () => fileInput.click());
 
 $('uploadArea').addEventListener('dragover', e => {
     e.preventDefault();
-    e.currentTarget.style.borderColor = 'var(--border-hover)';
+    e.currentTarget.style.borderColor = '#635bff';
+    e.currentTarget.style.background = 'rgba(99, 91, 255, 0.1)';
 });
 
 $('uploadArea').addEventListener('dragleave', e => {
-    e.currentTarget.style.borderColor = 'var(--border)';
+    e.currentTarget.style.borderColor = '#e4e8ee';
+    e.currentTarget.style.background = '#f6f9fc';
 });
 
 $('uploadArea').addEventListener('drop', e => {
     e.preventDefault();
-    e.currentTarget.style.borderColor = 'var(--border)';
+    e.currentTarget.style.borderColor = '#e4e8ee';
+    e.currentTarget.style.background = '#f6f9fc';
     fileInput.files = e.dataTransfer.files;
     handleFiles(e.dataTransfer.files);
 });
@@ -68,15 +76,19 @@ function handleFiles(files) {
     fileList.innerHTML = Array.from(files).map(f =>
         `<span class="file-tag">${f.name}</span>`
     ).join('');
+
+    // If user uploads files, uncheck sample style
+    if (hasFiles) {
+        useSampleStyle.checked = false;
+    }
     updateSubmitState();
 }
 
 function updateSubmitState() {
-    const topicValid = selectedTopic && (selectedTopic !== 'custom' || customTopic.value.trim());
-    submitBtn.disabled = !(topicValid && hasFiles);
+    const topicValid = customTopic.value.trim().length > 0;
+    const styleValid = hasFiles || useSampleStyle.checked;
+    submitBtn.disabled = !(topicValid && styleValid);
 }
-
-customTopic.addEventListener('input', updateSubmitState);
 
 // Form submission
 form.addEventListener('submit', async e => {
@@ -96,6 +108,10 @@ form.addEventListener('submit', async e => {
 
     try {
         const formData = new FormData(form);
+        // Set the topic from custom input
+        formData.set('topic', 'custom');
+        formData.set('custom_topic', customTopic.value.trim());
+
         const res = await fetch('/generate', { method: 'POST', body: formData });
         const data = await res.json();
 
@@ -140,9 +156,7 @@ $('resetBtn').addEventListener('click', () => {
     step1.classList.remove('hidden');
     form.reset();
     document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('selected'));
-    customTopic.classList.add('hidden');
     fileList.innerHTML = '';
-    selectedTopic = null;
     hasFiles = false;
     submitBtn.disabled = true;
     errorState.classList.add('hidden');

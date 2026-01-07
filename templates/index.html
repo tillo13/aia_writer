@@ -6,7 +6,7 @@
     <title>AIA — AI-Powered Content Generation</title>
     <meta name="description" content="Generate authentic, on-brand content at scale. AIA analyzes your writing style and creates articles that sound like you.">
     <link rel="stylesheet" href="/static/style.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%233b82f6' rx='20' width='100' height='100'/><text x='50' y='68' text-anchor='middle' fill='white' font-size='50' font-weight='bold'>A</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23635bff' rx='20' width='100' height='100'/><text x='50' y='68' text-anchor='middle' fill='white' font-size='50' font-weight='bold'>A</text></svg>">
 </head>
 <body>
     <nav>
@@ -15,36 +15,62 @@
             <div class="nav-links">
                 <a href="#features">Features</a>
                 <a href="#how-it-works">How it works</a>
-                <a href="#app" class="btn btn-secondary">Get Started</a>
+                <a href="#app" class="btn btn-primary">Get Started</a>
             </div>
         </div>
     </nav>
 
     <section class="hero">
         <div class="wrapper">
-            <div class="hero-badge">
-                <span>New</span> Powered by Claude AI
+            <div class="hero-content">
+                <div class="hero-eyebrow">Content Infrastructure</div>
+                <h1>Generate articles in <span class="hero-gradient">your voice</span></h1>
+                <p>Upload your writing samples, choose a topic, and get publication-ready articles that match your unique style. Sourced from real news. Ready in seconds.</p>
+                <div class="hero-cta">
+                    <a href="#app" class="btn btn-primary">Start generating <span class="btn-arrow">→</span></a>
+                    <a href="#how-it-works" class="btn btn-secondary">Learn more</a>
+                </div>
             </div>
-            <h1>Content that sounds like you, created in seconds</h1>
-            <p>Upload your writing samples. Choose a topic. Get publication-ready articles that match your unique voice and style.</p>
-            <div class="hero-cta">
-                <a href="#app" class="btn btn-primary">Start generating</a>
-                <a href="#how-it-works" class="btn btn-secondary">See how it works</a>
+            <div class="hero-visual">
+                <div class="hero-card">
+                    <div class="hero-card-header">
+                        <div class="hero-card-dot"></div>
+                        <div class="hero-card-dot"></div>
+                        <div class="hero-card-dot"></div>
+                        <div class="hero-card-title">Content Generator</div>
+                    </div>
+                    <div class="hero-card-content">
+                        <div class="hero-card-item">
+                            <div class="hero-card-icon">1</div>
+                            <div class="hero-card-text">Choose topic category</div>
+                        </div>
+                        <div class="hero-card-item">
+                            <div class="hero-card-icon">2</div>
+                            <div class="hero-card-text">Upload writing samples</div>
+                        </div>
+                        <div class="hero-card-item">
+                            <div class="hero-card-icon">3</div>
+                            <div class="hero-card-text">Get 3 articles instantly</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
     <section class="features" id="features">
         <div class="wrapper">
-            <div class="section-label">Features</div>
-            <h2 class="section-title">Built for authentic content</h2>
-            <p class="section-desc">Every article is grounded in real sources and written in your voice. No generic AI slop.</p>
+            <div class="section-header">
+                <div class="section-eyebrow">Features</div>
+                <h2 class="section-title">Built for authentic content</h2>
+                <p class="section-desc">Every article is grounded in real sources and written in your voice. No generic outputs.</p>
+            </div>
 
             <div class="feature-grid">
                 <div class="feature-card">
                     <div class="feature-icon">W</div>
                     <h3>Voice Analysis</h3>
-                    <p>Our AI studies your writing patterns, tone, vocabulary, and structure to create a detailed voice profile.</p>
+                    <p>Advanced analysis of your writing patterns, tone, vocabulary, and structure to create a detailed voice profile.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">S</div>
@@ -62,23 +88,25 @@
 
     <section class="how-it-works" id="how-it-works">
         <div class="wrapper">
-            <div class="section-label">How it works</div>
-            <h2 class="section-title">Three steps to authentic content</h2>
-            <p class="section-desc">No templates. No generic outputs. Just content that reads like you wrote it.</p>
+            <div class="section-header">
+                <div class="section-eyebrow">How it works</div>
+                <h2 class="section-title">Three steps to authentic content</h2>
+                <p class="section-desc">No templates. No generic outputs. Just content that reads like you wrote it.</p>
+            </div>
 
             <div class="steps">
                 <div class="step">
-                    <div class="step-number">01</div>
-                    <h3>Choose your topic</h3>
-                    <p>Select from categories like tech, finance, or healthcare—or enter any custom topic you want to cover.</p>
+                    <div class="step-number">1</div>
+                    <h3>Enter your topic</h3>
+                    <p>Type any topic you want to cover, or select from quick categories like tech, finance, or healthcare.</p>
                 </div>
                 <div class="step">
-                    <div class="step-number">02</div>
+                    <div class="step-number">2</div>
                     <h3>Upload writing samples</h3>
                     <p>Share 2-5 examples of your writing. Blog posts, articles, emails—anything that represents your voice.</p>
                 </div>
                 <div class="step">
-                    <div class="step-number">03</div>
+                    <div class="step-number">3</div>
                     <h3>Generate articles</h3>
                     <p>Get multiple publication-ready articles, each with real sources and written in your authentic style.</p>
                 </div>
@@ -104,25 +132,31 @@
                         <!-- Step 1: Topic -->
                         <div id="step1">
                             <div class="form-section">
-                                <label class="form-label">Select a topic</label>
-                                <div class="topic-grid" id="topicGrid">
+                                <label class="form-label">What topic do you want to write about?</label>
+                                <input type="text" class="text-input" id="customTopic" name="custom_topic" placeholder="e.g., ServiceNow acquisition, AI regulation, cloud migration trends">
+                                <div class="topic-grid" style="margin-top: 16px;">
                                     {% for key, label in topics.items() %}
                                     <button type="button" class="topic-btn" data-topic="{{ key }}">{{ key|title }}</button>
                                     {% endfor %}
-                                    <button type="button" class="topic-btn" data-topic="custom">Custom</button>
                                 </div>
-                                <input type="hidden" name="topic" id="topicInput">
-                                <input type="text" class="text-input hidden" id="customTopic" name="custom_topic" placeholder="Enter your topic (e.g., ServiceNow acquisition, AI regulation)">
+                                <input type="hidden" name="topic" id="topicInput" value="custom">
                             </div>
 
                             <div class="form-section">
-                                <label class="form-label">Upload writing samples</label>
+                                <label class="form-label">Upload writing samples <span class="form-sublabel">or use our sample style</span></label>
                                 <div class="upload-area" id="uploadArea">
-                                    <h4>Drop files here or click to browse</h4>
+                                    <div class="upload-icon">↑</div>
+                                    <h4>Drop files here or <span class="upload-link">browse</span></h4>
                                     <p>PDF, TXT, DOC, or MD files — 2-5 samples recommended</p>
                                 </div>
                                 <input type="file" name="files" id="fileInput" multiple accept=".pdf,.txt,.md,.doc,.docx" style="display:none;">
                                 <div class="file-list" id="fileList"></div>
+
+                                <div class="sample-style-option">
+                                    <input type="checkbox" id="useSampleStyle" name="use_sample_style">
+                                    <label for="useSampleStyle">Use sample writing style</label>
+                                    <span>— technical, practical voice with specific metrics</span>
+                                </div>
                             </div>
 
                             <button type="submit" class="submit-btn" id="submitBtn" disabled>Generate articles</button>
@@ -154,7 +188,7 @@
 
     <footer>
         <div class="wrapper">
-            <p>Built with Claude AI. All generated content includes source verification.</p>
+            <p>AIA — AI-powered content generation with source verification.</p>
         </div>
     </footer>
 

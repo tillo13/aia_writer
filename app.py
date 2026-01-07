@@ -1,5 +1,6 @@
+import os
 from flask import Flask, render_template, request, jsonify
-from utilities.anthropic_utils import fetch_and_analyze, generate_articles, search_sources
+from utilities.anthropic_utils import fetch_and_analyze, generate_articles
 
 app = Flask(__name__)
 
@@ -13,31 +14,46 @@ TOPICS = {
     "entertainment": "entertainment and media news"
 }
 
+SAMPLE_STYLE_PATH = os.path.join(os.path.dirname(__file__), 'static', 'files', 'sample.txt')
+
 @app.route('/')
 def home():
     return render_template('index.html', topics=TOPICS)
 
 @app.route('/generate', methods=['POST'])
 def generate():
-    topic_key = request.form.get('topic')
     custom_topic = request.form.get('custom_topic', '').strip()
     files = request.files.getlist('files')
+    use_sample_style = request.form.get('use_sample_style') == 'on'
 
-    if not files:
-        return jsonify({"error": "Upload at least one writing sample"}), 400
+    # Filter out empty file uploads
+    files = [f for f in files if f.filename]
 
-    topic = custom_topic if custom_topic else TOPICS.get(topic_key, "technology news")
+    if not files and not use_sample_style:
+        return jsonify({"error": "Upload writing samples or use the sample style"}), 400
+
+    if not custom_topic:
+        return jsonify({"error": "Enter a topic to write about"}), 400
+
+    # Use sample style file if checkbox is checked and no files uploaded
+    sample_content = None
+    if use_sample_style and not files:
+        try:
+            with open(SAMPLE_STYLE_PATH, 'r') as f:
+                sample_content = f.read()
+        except FileNotFoundError:
+            return jsonify({"error": "Sample style file not found"}), 500
 
     # Parallel: fetch sources + analyze style
-    sources, style = fetch_and_analyze(topic, files)
+    sources, style = fetch_and_analyze(custom_topic, files, sample_content)
 
     if not sources:
-        return jsonify({"error": f"No articles found for '{topic}'"}), 404
+        return jsonify({"error": f"No articles found for '{custom_topic}'"}), 404
 
     # Generate articles
     articles = generate_articles(sources, style)
 
-    return jsonify({"articles": articles, "style": style, "topic": topic})
+    return jsonify({"articles": articles, "style": style, "topic": custom_topic})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

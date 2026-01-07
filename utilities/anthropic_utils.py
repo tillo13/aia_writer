@@ -28,19 +28,26 @@ Only include articles with real URLs. If you can't find 3, return fewer."""}])
         return [s for s in sources if s.get('url', '').startswith('http')]
     except: return []
 
-def analyze_style(files):
-    """Analyze writing style from uploaded files, return style profile string"""
+def analyze_style(files=None, sample_content=None):
+    """Analyze writing style from uploaded files or sample content, return style profile string"""
     content = []
-    for f in files:
-        data = f.read()
-        ext = f.filename.split('.')[-1].lower()
-        if ext == 'pdf':
-            content.append({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": base64.b64encode(data).decode()}})
-        elif ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
-            mt = f"image/{'jpeg' if ext == 'jpg' else ext}"
-            content.append({"type": "image", "source": {"type": "base64", "media_type": mt, "data": base64.b64encode(data).decode()}})
-        else:
-            content.append({"type": "text", "text": f"<doc name='{f.filename}'>\n{data.decode('utf-8', errors='ignore')}\n</doc>"})
+
+    if sample_content:
+        # Use provided sample content directly
+        content.append({"type": "text", "text": f"<doc name='sample.txt'>\n{sample_content}\n</doc>"})
+    elif files:
+        for f in files:
+            data = f.read()
+            ext = f.filename.split('.')[-1].lower()
+            if ext == 'pdf':
+                content.append({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": base64.b64encode(data).decode()}})
+            elif ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+                mt = f"image/{'jpeg' if ext == 'jpg' else ext}"
+                content.append({"type": "image", "source": {"type": "base64", "media_type": mt, "data": base64.b64encode(data).decode()}})
+            else:
+                content.append({"type": "text", "text": f"<doc name='{f.filename}'>\n{data.decode('utf-8', errors='ignore')}\n</doc>"})
+    else:
+        return "Write in a professional, engaging tone with clear structure."
 
     content.append({"type": "text", "text": """Analyze these writing samples. Extract the author's voice in 100 words or less:
 - Tone and personality
@@ -80,9 +87,9 @@ Output ONLY the post text, nothing else."""}])
         articles.append({"content": r.content[0].text, "source": src})
     return articles
 
-def fetch_and_analyze(topic, files):
+def fetch_and_analyze(topic, files=None, sample_content=None):
     """Run source search and style analysis in parallel"""
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
         sources_future = ex.submit(search_sources, topic)
-        style_future = ex.submit(analyze_style, files)
+        style_future = ex.submit(analyze_style, files, sample_content)
         return sources_future.result(), style_future.result()
