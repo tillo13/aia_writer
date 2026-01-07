@@ -21,10 +21,11 @@
     </nav>
 
     <section class="hero">
+        <div class="hero-gradient-bg"></div>
         <div class="wrapper">
             <div class="hero-content">
-                <div class="hero-eyebrow">Content Infrastructure</div>
-                <h1>Generate articles in <span class="hero-gradient">your voice</span></h1>
+                <div class="hero-eyebrow">Content infrastructure for creators</div>
+                <h1>Generate content in <span class="hero-gradient-text">your voice</span></h1>
                 <p>Upload your writing samples, choose a topic, and get publication-ready articles that match your unique style. Sourced from real news. Ready in seconds.</p>
                 <div class="hero-cta">
                     <a href="#app" class="btn btn-primary">Start generating <span class="btn-arrow">→</span></a>
@@ -32,28 +33,55 @@
                 </div>
             </div>
             <div class="hero-visual">
-                <div class="hero-card">
-                    <div class="hero-card-header">
-                        <div class="hero-card-dot"></div>
-                        <div class="hero-card-dot"></div>
-                        <div class="hero-card-dot"></div>
-                        <div class="hero-card-title">Content Generator</div>
+                <div class="floating-card floating-card-1">
+                    <div class="card-header">
+                        <div class="card-icon card-icon-purple">W</div>
+                        <div>
+                            <div class="card-title">Voice Analysis</div>
+                            <div class="card-subtitle">Style profile ready</div>
+                        </div>
                     </div>
-                    <div class="hero-card-content">
-                        <div class="hero-card-item">
-                            <div class="hero-card-icon">1</div>
-                            <div class="hero-card-text">Choose topic category</div>
+                    <div class="card-content">Tone: conversational, technical<br>Patterns: metric-driven, practical</div>
+                </div>
+                <div class="floating-card floating-card-2">
+                    <div class="card-header">
+                        <div class="card-icon card-icon-orange">S</div>
+                        <div>
+                            <div class="card-title">Sources Found</div>
+                            <div class="card-subtitle">Real-time search</div>
                         </div>
-                        <div class="hero-card-item">
-                            <div class="hero-card-icon">2</div>
-                            <div class="hero-card-text">Upload writing samples</div>
+                    </div>
+                    <div class="card-metric">
+                        <div>
+                            <div class="card-metric-value">3</div>
+                            <div class="card-metric-label">verified articles</div>
                         </div>
-                        <div class="hero-card-item">
-                            <div class="hero-card-icon">3</div>
-                            <div class="hero-card-text">Get 3 articles instantly</div>
-                        </div>
+                        <div class="card-metric-change">+100%</div>
                     </div>
                 </div>
+                <div class="floating-card floating-card-3">
+                    <div class="card-header">
+                        <div class="card-icon card-icon-blue">A</div>
+                        <div>
+                            <div class="card-title">Article Generated</div>
+                            <div class="card-subtitle">In your voice</div>
+                        </div>
+                    </div>
+                    <div class="card-content">250 words • LinkedIn-ready • Source verified</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="logos-section">
+        <div class="wrapper">
+            <div class="logos-title">Trusted by content creators and teams</div>
+            <div class="logos-grid">
+                <span class="logo-item">Medium</span>
+                <span class="logo-item">LinkedIn</span>
+                <span class="logo-item">Substack</span>
+                <span class="logo-item">Ghost</span>
+                <span class="logo-item">Wordpress</span>
             </div>
         </div>
     </section>
@@ -70,17 +98,17 @@
                 <div class="feature-card">
                     <div class="feature-icon">W</div>
                     <h3>Voice Analysis</h3>
-                    <p>Advanced analysis of your writing patterns, tone, vocabulary, and structure to create a detailed voice profile.</p>
+                    <p>Advanced analysis of your writing patterns, tone, vocabulary, and structure to create a detailed voice profile that captures how you think.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">S</div>
                     <h3>Real-time Sources</h3>
-                    <p>Every article is backed by current news and research. Each piece includes verifiable source links.</p>
+                    <p>Every article is backed by current news and research. Each piece includes verifiable source links so readers can dig deeper.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">T</div>
                     <h3>Topic Flexibility</h3>
-                    <p>Choose from preset categories or enter any custom topic. From tech news to niche industry trends.</p>
+                    <p>Choose from preset categories or enter any custom topic. From tech news to niche industry trends—we find the stories that matter.</p>
                 </div>
             </div>
         </div>
@@ -129,7 +157,6 @@
 
                 <div class="app-content">
                     <form id="mainForm">
-                        <!-- Step 1: Topic -->
                         <div id="step1">
                             <div class="form-section">
                                 <label class="form-label">What topic do you want to write about?</label>
@@ -162,14 +189,12 @@
                             <button type="submit" class="submit-btn" id="submitBtn" disabled>Generate articles</button>
                         </div>
 
-                        <!-- Loading -->
                         <div id="loadingState" class="loading-state hidden">
                             <div class="spinner"></div>
                             <h4 id="loadingTitle">Analyzing your writing style</h4>
                             <p id="loadingDesc">This usually takes 20-30 seconds</p>
                         </div>
 
-                        <!-- Results -->
                         <div id="resultsState" class="hidden">
                             <div class="results-header">
                                 <h3>Generated articles</h3>
@@ -178,7 +203,6 @@
                             <div id="articlesContainer"></div>
                         </div>
 
-                        <!-- Error -->
                         <div id="errorState" class="error-msg hidden"></div>
                     </form>
                 </div>

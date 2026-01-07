@@ -33,7 +33,6 @@ def analyze_style(files=None, sample_content=None):
     content = []
 
     if sample_content:
-        # Use provided sample content directly
         content.append({"type": "text", "text": f"<doc name='sample.txt'>\n{sample_content}\n</doc>"})
     elif files:
         for f in files:
@@ -49,41 +48,75 @@ def analyze_style(files=None, sample_content=None):
     else:
         return "Write in a professional, engaging tone with clear structure."
 
-    content.append({"type": "text", "text": """Analyze these writing samples. Extract the author's voice in 100 words or less:
-- Tone and personality
-- Sentence patterns (short? questions? casual?)
-- Recurring phrases or verbal tics
-- How they open/close pieces
-- What they avoid
+    content.append({"type": "text", "text": """You are a world-class ghostwriter. Analyze these writing samples to deeply understand this author's voice.
 
-Be specific. Use examples from the text. Output as a concise style guide."""})
+Extract the ESSENCE of how they think and communicate:
 
-    r = get_client().messages.create(model="claude-sonnet-4-20250514", max_tokens=1000, messages=[{"role": "user", "content": content}])
+1. MINDSET & PERSPECTIVE
+   - How do they approach problems? (skeptical? enthusiastic? analytical?)
+   - What's their relationship with the reader? (peer? mentor? fellow learner?)
+   - What do they value? (practicality? honesty? experimentation?)
+
+2. RHYTHM & FLOW
+   - Sentence length patterns (do they vary? how?)
+   - How do they transition between ideas?
+   - Pacing - when do they speed up or slow down?
+
+3. DISTINCTIVE MOVES
+   - How do they hook readers at the start?
+   - What makes their explanations land?
+   - How do they handle complexity?
+   - Their approach to evidence and examples
+
+4. VOICE FINGERPRINTS
+   - Characteristic phrases (but note: these should be used sparingly, not in every piece)
+   - Tone markers - humor, directness, self-deprecation?
+   - What they explicitly avoid
+
+Output a style guide that captures the SPIRIT of this writer, not just surface patterns. A good ghostwriter channels the author's thinking, not just their verbal tics."""})
+
+    r = get_client().messages.create(model="claude-sonnet-4-20250514", max_tokens=1500, messages=[{"role": "user", "content": content}])
     return r.content[0].text
 
+ARTICLE_ANGLES = [
+    "Lead with the most surprising or counterintuitive insight. Challenge conventional thinking.",
+    "Start with a concrete scenario or problem the reader might face. Make it immediately relevant.",
+    "Open with your honest reaction - what made you stop and think? Be genuinely reflective."
+]
+
 def generate_articles(sources, style):
-    """Generate one article per source in the user's style"""
+    """Generate one article per source in the user's style, each with a different angle"""
     articles = []
-    for src in sources:
+    for i, src in enumerate(sources):
+        angle = ARTICLE_ANGLES[i % len(ARTICLE_ANGLES)]
+
         r = get_client().messages.create(
             model="claude-sonnet-4-20250514", max_tokens=1500,
-            messages=[{"role": "user", "content": f"""Write a LinkedIn post about this article in the specified writing style.
+            messages=[{"role": "user", "content": f"""You are ghostwriting a LinkedIn post for a specific author. Your job is to channel their THINKING and PERSPECTIVE, not just mimic their phrases.
 
-SOURCE:
+ARTICLE TO WRITE ABOUT:
 Title: {src['title']}
 URL: {src['url']}
 Summary: {src['summary']}
 
-WRITING STYLE TO MATCH:
+THE AUTHOR'S VOICE (channel the spirit, not just the words):
 {style}
 
-Requirements:
-- 150-250 words
-- Match the voice/tone exactly
-- Include your unique take, not just summary
-- End with the source attribution
+YOUR ANGLE FOR THIS PIECE:
+{angle}
 
-Output ONLY the post text, nothing else."""}])
+GUIDELINES:
+- 150-300 words
+- Write as this person THINKS, not just how they phrase things
+- Bring genuine insight - what would THIS author notice that others miss?
+- Vary your structure - don't use the same opening/closing patterns every time
+- Include the source URL naturally
+- Avoid formulaic patterns like always starting with "TLDR:" or always ending with a question
+- Make it feel like a real person wrote this specific post about this specific topic
+
+The goal: if the author read this, they'd think "I wish I'd written that" - not "that sounds like a template."
+
+Output ONLY the post text."""}])
         articles.append({"content": r.content[0].text, "source": src})
     return articles
 
