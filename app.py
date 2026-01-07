@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 import json
 from utilities.anthropic_utils import search_sources, analyze_style, generate_single_article
 
@@ -44,8 +44,16 @@ def generate():
         except FileNotFoundError:
             return jsonify({"error": "Sample style file not found"}), 500
 
+    # Read file contents before entering generator (can't read in generator)
+    file_contents = []
+    for f in files:
+        file_contents.append({
+            'filename': f.filename,
+            'data': f.read()
+        })
+
     def generate_stream():
-        # First, send status update
+        # Send initial event
         yield f"data: {json.dumps({'type': 'status', 'message': 'Searching for articles...'})}\n\n"
 
         # Search for sources
@@ -54,15 +62,15 @@ def generate():
             yield f"data: {json.dumps({'type': 'error', 'message': f'No articles found for {custom_topic}'})}\n\n"
             return
 
-        yield f"data: {json.dumps({'type': 'status', 'message': f'Found {len(sources)} sources. Analyzing style...'})}\n\n"
+        yield f"data: {json.dumps({'type': 'sources', 'count': len(sources)})}\n\n"
+        yield f"data: {json.dumps({'type': 'status', 'message': f'Found {len(sources)} sources. Analyzing your writing style...'})}\n\n"
 
         # Analyze style
-        style = analyze_style(files, sample_content)
+        style = analyze_style(file_contents if file_contents else None, sample_content)
 
-        yield f"data: {json.dumps({'type': 'status', 'message': 'Generating articles...'})}\n\n"
-        yield f"data: {json.dumps({'type': 'style', 'style': style})}\n\n"
+        yield f"data: {json.dumps({'type': 'status', 'message': 'Style analyzed. Generating articles...'})}\n\n"
 
-        # Generate and stream each article
+        # Generate and stream each article one by one
         for i, src in enumerate(sources):
             yield f"data: {json.dumps({'type': 'status', 'message': f'Writing article {i+1} of {len(sources)}...'})}\n\n"
 
@@ -71,7 +79,16 @@ def generate():
 
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
-    return Response(generate_stream(), mimetype='text/event-stream')
+    response = Response(
+        stream_with_context(generate_stream()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache, no-transform',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+        }
+    )
+    return response
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)

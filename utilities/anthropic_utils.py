@@ -28,23 +28,28 @@ Only include articles with real URLs. If you can't find 3, return fewer."""}])
         return [s for s in sources if s.get('url', '').startswith('http')]
     except: return []
 
-def analyze_style(files=None, sample_content=None):
-    """Analyze writing style from uploaded files or sample content"""
+def analyze_style(file_contents=None, sample_content=None):
+    """Analyze writing style from file contents or sample content
+
+    file_contents: list of dicts with 'filename' and 'data' (bytes)
+    sample_content: string of sample text
+    """
     content = []
 
     if sample_content:
         content.append({"type": "text", "text": f"<doc name='sample.txt'>\n{sample_content}\n</doc>"})
-    elif files:
-        for f in files:
-            data = f.read()
-            ext = f.filename.split('.')[-1].lower()
+    elif file_contents:
+        for f in file_contents:
+            data = f['data']
+            filename = f['filename']
+            ext = filename.split('.')[-1].lower()
             if ext == 'pdf':
                 content.append({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": base64.b64encode(data).decode()}})
             elif ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
                 mt = f"image/{'jpeg' if ext == 'jpg' else ext}"
                 content.append({"type": "image", "source": {"type": "base64", "media_type": mt, "data": base64.b64encode(data).decode()}})
             else:
-                content.append({"type": "text", "text": f"<doc name='{f.filename}'>\n{data.decode('utf-8', errors='ignore')}\n</doc>"})
+                content.append({"type": "text", "text": f"<doc name='{filename}'>\n{data.decode('utf-8', errors='ignore')}\n</doc>"})
     else:
         return "Write in a professional, engaging tone with clear structure."
 
