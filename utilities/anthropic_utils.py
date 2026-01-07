@@ -1,149 +1,88 @@
-"""All Anthropic/Claude functionality - optimized"""
-import base64,concurrent.futures,re
+import json,re,base64,concurrent.futures
 from anthropic import Anthropic
 from .google_secret_utils import get_secret
 
+client = None
 def get_client():
-    return Anthropic(api_key=get_secret('KUMORI_ANTHROPIC_API_KEY'))
+    global client
+    if not client: client = Anthropic(api_key=get_secret('KUMORI_ANTHROPIC_API_KEY'))
+    return client
 
-def strip_markdown_code_fence(text):
-    """Remove markdown code fences (```json, ```, etc.) from text"""
-    # Remove opening code fence (```json or ```)
-    text = re.sub(r'^```(?:json)?\s*\n', '', text, flags=re.MULTILINE)
-    # Remove closing code fence (```)
-    text = re.sub(r'\n```\s*$', '', text, flags=re.MULTILINE)
-    return text.strip()
+def search_sources(topic):
+    """Search for 3 articles on topic, return list of {title, url, summary}"""
+    r = get_client().messages.create(
+        model="claude-sonnet-4-20250514", max_tokens=2000,
+        tools=[{"type": "web_search_20250305", "name": "web_search"}],
+        messages=[{"role": "user", "content": f"""Search for 3 recent news articles about: {topic}
 
-def fetch_news_only():
-    """Just fetch news - fast and cacheable"""
-    client=get_client()
-    r=client.messages.create(model="claude-sonnet-4-20250514",max_tokens=2000,
-        tools=[{"type":"web_search_20250305","name":"web_search"}],
-        messages=[{"role":"user","content":"Find the single biggest AI tech news story from today and summarize it in 3-4 paragraphs. Include what happened, why it matters, and key details."}])
-    return ''.join(b.text for b in r.content if b.type=="text")
+Return ONLY valid JSON array, no other text:
+[{{"title": "...", "url": "https://...", "summary": "2-3 sentence summary"}}]
 
-def analyze_style_only(files):
-    """Just analyze style - returns JSON string"""
-    client=get_client()
-    content=[]
-    
+Only include articles with real URLs. If you can't find 3, return fewer."""}])
+
+    text = ''.join(b.text for b in r.content if hasattr(b, 'text'))
+    match = re.search(r'\[.*\]', text, re.DOTALL)
+    if not match: return []
+    try:
+        sources = json.loads(match.group())
+        return [s for s in sources if s.get('url', '').startswith('http')]
+    except: return []
+
+def analyze_style(files):
+    """Analyze writing style from uploaded files, return style profile string"""
+    content = []
     for f in files:
-        data=f.read()
-        b64=base64.b64encode(data).decode('utf-8')
-        ext=f.filename.split('.')[-1].lower()
-        
-        if ext=='pdf':
-            content.append({"type":"document","source":{"type":"base64","media_type":"application/pdf","data":b64}})
-        elif ext in['jpg','jpeg','png','gif','webp']:
-            content.append({"type":"image","source":{"type":"base64","media_type":f"image/{ext if ext!='jpg'else'jpeg'}","data":b64}})
+        data = f.read()
+        ext = f.filename.split('.')[-1].lower()
+        if ext == 'pdf':
+            content.append({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": base64.b64encode(data).decode()}})
+        elif ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+            mt = f"image/{'jpeg' if ext == 'jpg' else ext}"
+            content.append({"type": "image", "source": {"type": "base64", "media_type": mt, "data": base64.b64encode(data).decode()}})
         else:
-            text=data.decode('utf-8',errors='ignore')
-            content.append({"type":"text","text":f"<document name='{f.filename}'>\n{text}\n</document>"})
-    
-    content.append({"type":"text","text":"""You are a writing style analyst. Analyze all provided documents to extract the author's complete writing DNA.
+            content.append({"type": "text", "text": f"<doc name='{f.filename}'>\n{data.decode('utf-8', errors='ignore')}\n</doc>"})
 
-Extract and output a JSON object with this exact structure:
+    content.append({"type": "text", "text": """Analyze these writing samples. Extract the author's voice in 100 words or less:
+- Tone and personality
+- Sentence patterns (short? questions? casual?)
+- Recurring phrases or verbal tics
+- How they open/close pieces
+- What they avoid
 
-{
-  "conversational_patterns": {
-    "natural_voice_markers": ["phrases appearing 5+ times - their verbal tics and recurring language"],
-    "opening_patterns": ["common first paragraph structures as templates with {placeholders}"],
-    "transition_phrases": ["recurring connectors between ideas"],
-    "closing_patterns": ["common ending structures as templates"]
-  },
-  
-  "authenticity_markers": {
-    "vulnerability_patterns": ["how they admit mistakes, share failures, show uncertainty"],
-    "technical_authenticity": ["how they use real numbers, specs, metrics, timestamps, costs"],
-    "what_they_never_fabricate": ["things they're always specific about vs vague"]
-  },
-  
-  "style_fingerprints": {
-    "sentence_patterns": ["typical structures - short? questions? compound?"],
-    "paragraph_rhythm": "how they structure paragraphs",
-    "tone": "their consistent voice quality",
-    "technical_depth": "how deep they go with details"
-  },
-  
-  "signature_elements": {
-    "analogies": ["recurring metaphors or comparison styles"],
-    "examples": ["types of examples they use"],
-    "interaction_style": "how they address readers"
-  },
-  
-  "anti_patterns": {
-    "never_uses": ["words/phrases consistently absent"],
-    "avoids": ["patterns they consciously avoid - hype, corporate speak, etc"]
-  }
-}
+Be specific. Use examples from the text. Output as a concise style guide."""})
 
-Rules:
-- Only include patterns appearing in 3+ documents
-- Use exact phrases from documents for voice_markers
-- Create templates with {placeholders} for patterns
-- Be specific, not generic
-- Output ONLY valid JSON, no explanation"""})
-    
-    r=client.messages.create(model="claude-sonnet-4-20250514",max_tokens=8000,messages=[{"role":"user","content":content}])
-    raw_text = r.content[0].text
-    # Strip markdown code fences if present
-    return strip_markdown_code_fence(raw_text)
-
-def analyze_style_and_fetch_news(files):
-    """Run style analysis and news fetch IN PARALLEL"""
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        style_future=executor.submit(analyze_style_only,files)
-        news_future=executor.submit(fetch_news_only)
-        
-        style_json=style_future.result()
-        news=news_future.result()
-    
-    return style_json,news
-
-def restyle_content(style_json,news_text,model_name="Claude Sonnet 4"):
-    """Restyle content using Claude"""
-    client=get_client()
-    
-    prompt=f"""You are a writing style adapter. You have been given:
-
-1. A detailed JSON style profile of a writer
-2. An AI news article (originally written by {model_name})
-
-Your task: Rewrite the news article to match the writer's style perfectly.
-
-STYLE PROFILE:
-{style_json}
-
-ORIGINAL NEWS ARTICLE:
-{news_text}
-
-Instructions:
-- Apply ALL patterns from the style profile
-- Match their conversational voice markers and recurring phrases
-- Use their sentence structures and paragraph rhythm
-- Incorporate their authenticity markers (how they use specifics, admit uncertainty, etc)
-- Follow their opening and closing patterns
-- Avoid their anti-patterns
-- Keep the same factual content but transform the voice completely
-
-Output ONLY the rewritten article, no explanations."""
-    
-    r=client.messages.create(model="claude-sonnet-4-20250514",max_tokens=4000,messages=[{"role":"user","content":prompt}])
+    r = get_client().messages.create(model="claude-sonnet-4-20250514", max_tokens=1000, messages=[{"role": "user", "content": content}])
     return r.content[0].text
 
-def stream_chat(model,messages,temperature,max_tokens,enable_web_search,enable_thinking):
-    """Stream chat responses"""
-    client=get_client()
-    params={"model":model,"max_tokens":max_tokens,"temperature":temperature,"messages":messages}
-    
-    web_search_models=['claude-opus-4','claude-sonnet-4','claude-3-7-sonnet','claude-3-5-sonnet','claude-3-5-haiku']
-    if enable_web_search and any(m in model for m in web_search_models):
-        params["tools"]=[{"type":"web_search_20250305","name":"web_search"}]
-    
-    thinking_models=['claude-opus-4','claude-sonnet-4']
-    if enable_thinking and any(m in model for m in thinking_models):
-        params["thinking"]={"type":"enabled","budget_tokens":8000}
-    
-    with client.messages.stream(**params)as stream:
-        for text in stream.text_stream:
-            yield text
+def generate_articles(sources, style):
+    """Generate one article per source in the user's style"""
+    articles = []
+    for src in sources:
+        r = get_client().messages.create(
+            model="claude-sonnet-4-20250514", max_tokens=1500,
+            messages=[{"role": "user", "content": f"""Write a LinkedIn post about this article in the specified writing style.
+
+SOURCE:
+Title: {src['title']}
+URL: {src['url']}
+Summary: {src['summary']}
+
+WRITING STYLE TO MATCH:
+{style}
+
+Requirements:
+- 150-250 words
+- Match the voice/tone exactly
+- Include your unique take, not just summary
+- End with the source attribution
+
+Output ONLY the post text, nothing else."""}])
+        articles.append({"content": r.content[0].text, "source": src})
+    return articles
+
+def fetch_and_analyze(topic, files):
+    """Run source search and style analysis in parallel"""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+        sources_future = ex.submit(search_sources, topic)
+        style_future = ex.submit(analyze_style, files)
+        return sources_future.result(), style_future.result()

@@ -7,5 +7,5 @@ env/
 .vscode/
 .idea/
 .DS_Store
-gather_files.py
-*_project_structure.txt
+.claude/
+archive/
