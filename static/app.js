@@ -4,7 +4,6 @@ const step1 = $('step1');
 const loadingState = $('loadingState');
 const resultsState = $('resultsState');
 const errorState = $('errorState');
-const topicInput = $('topicInput');
 const customTopic = $('customTopic');
 const fileInput = $('fileInput');
 const fileList = $('fileList');
@@ -16,17 +15,9 @@ const useSampleStyle = $('useSampleStyle');
 
 let hasFiles = false;
 
-const loadingSteps = [
-    { title: 'Searching for recent articles', desc: 'Finding relevant sources on your topic' },
-    { title: 'Analyzing your writing style', desc: 'Learning your voice, tone, and patterns' },
-    { title: 'Generating content', desc: 'Creating articles in your authentic voice' },
-    { title: 'Verifying sources', desc: 'Ensuring all citations are valid' },
-];
-
 // Topic quick-select buttons
 document.querySelectorAll('.topic-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        // Toggle selection
         const wasSelected = btn.classList.contains('selected');
         document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('selected'));
 
@@ -38,13 +29,11 @@ document.querySelectorAll('.topic-btn').forEach(btn => {
     });
 });
 
-// Custom topic input
 customTopic.addEventListener('input', () => {
     document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('selected'));
     updateSubmitState();
 });
 
-// Sample style checkbox
 useSampleStyle.addEventListener('change', updateSubmitState);
 
 // File upload
@@ -57,13 +46,13 @@ $('uploadArea').addEventListener('dragover', e => {
 });
 
 $('uploadArea').addEventListener('dragleave', e => {
-    e.currentTarget.style.borderColor = '#e4e8ee';
+    e.currentTarget.style.borderColor = '#d0d5dd';
     e.currentTarget.style.background = '#f6f9fc';
 });
 
 $('uploadArea').addEventListener('drop', e => {
     e.preventDefault();
-    e.currentTarget.style.borderColor = '#e4e8ee';
+    e.currentTarget.style.borderColor = '#d0d5dd';
     e.currentTarget.style.background = '#f6f9fc';
     fileInput.files = e.dataTransfer.files;
     handleFiles(e.dataTransfer.files);
@@ -77,7 +66,6 @@ function handleFiles(files) {
         `<span class="file-tag">${f.name}</span>`
     ).join('');
 
-    // If user uploads files, uncheck sample style
     if (hasFiles) {
         useSampleStyle.checked = false;
     }
@@ -90,7 +78,7 @@ function updateSubmitState() {
     submitBtn.disabled = !(topicValid && styleValid);
 }
 
-// Form submission
+// Form submission with SSE streaming
 form.addEventListener('submit', async e => {
     e.preventDefault();
     if (submitBtn.disabled) return;
@@ -98,57 +86,123 @@ form.addEventListener('submit', async e => {
     step1.classList.add('hidden');
     loadingState.classList.remove('hidden');
     errorState.classList.add('hidden');
+    resultsState.classList.add('hidden');
+    articlesContainer.innerHTML = '';
 
-    let stepIndex = 0;
-    const loadingInterval = setInterval(() => {
-        stepIndex = (stepIndex + 1) % loadingSteps.length;
-        loadingTitle.textContent = loadingSteps[stepIndex].title;
-        loadingDesc.textContent = loadingSteps[stepIndex].desc;
-    }, 4000);
+    loadingTitle.textContent = 'Starting...';
+    loadingDesc.textContent = 'Connecting to AI';
 
     try {
         const formData = new FormData(form);
-        // Set the topic from custom input
         formData.set('topic', 'custom');
         formData.set('custom_topic', customTopic.value.trim());
 
-        const res = await fetch('/generate', { method: 'POST', body: formData });
-        const data = await res.json();
+        const response = await fetch('/generate', {
+            method: 'POST',
+            body: formData
+        });
 
-        clearInterval(loadingInterval);
-
-        if (data.error) {
-            loadingState.classList.add('hidden');
-            errorState.textContent = data.error;
-            errorState.classList.remove('hidden');
-            step1.classList.remove('hidden');
-            return;
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Request failed');
         }
 
-        articlesContainer.innerHTML = data.articles.map((article, i) => `
-            <div class="article-card">
-                <div class="article-header">
-                    <span class="article-label">Article ${i + 1}</span>
-                    <button type="button" class="copy-btn" onclick="copyText(this, 'article${i}')">Copy</button>
-                </div>
-                <div class="article-body" id="article${i}">${escapeHtml(article.content)}</div>
-                <div class="article-footer">
-                    <a href="${article.source.url}" target="_blank" rel="noopener">Source: ${article.source.title}</a>
-                </div>
-            </div>
-        `).join('');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
+        // Show results container immediately
         loadingState.classList.add('hidden');
         resultsState.classList.remove('hidden');
 
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process complete SSE messages
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+                        handleStreamEvent(data);
+                    } catch (e) {
+                        console.error('Parse error:', e);
+                    }
+                }
+            }
+        }
+
     } catch (err) {
-        clearInterval(loadingInterval);
         loadingState.classList.add('hidden');
-        errorState.textContent = 'Something went wrong. Please try again.';
+        errorState.textContent = err.message || 'Something went wrong. Please try again.';
         errorState.classList.remove('hidden');
         step1.classList.remove('hidden');
     }
 });
+
+function handleStreamEvent(data) {
+    switch (data.type) {
+        case 'status':
+            // Update status in results header or show a status bar
+            updateStatus(data.message);
+            break;
+
+        case 'article':
+            appendArticle(data.article, data.index);
+            break;
+
+        case 'error':
+            resultsState.classList.add('hidden');
+            errorState.textContent = data.message;
+            errorState.classList.remove('hidden');
+            step1.classList.remove('hidden');
+            break;
+
+        case 'done':
+            hideStatus();
+            break;
+    }
+}
+
+function updateStatus(message) {
+    let statusEl = $('streamStatus');
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'streamStatus';
+        statusEl.className = 'stream-status';
+        articlesContainer.parentNode.insertBefore(statusEl, articlesContainer);
+    }
+    statusEl.innerHTML = `<div class="status-dot"></div><span>${message}</span>`;
+}
+
+function hideStatus() {
+    const statusEl = $('streamStatus');
+    if (statusEl) {
+        statusEl.style.opacity = '0';
+        setTimeout(() => statusEl.remove(), 300);
+    }
+}
+
+function appendArticle(article, index) {
+    const articleHtml = `
+        <div class="article-card article-animate" style="animation-delay: ${index * 0.1}s">
+            <div class="article-header">
+                <span class="article-label">Article ${index + 1}</span>
+                <button type="button" class="copy-btn" onclick="copyText(this, 'article${index}')">Copy</button>
+            </div>
+            <div class="article-body" id="article${index}">${escapeHtml(article.content)}</div>
+            <div class="article-footer">
+                <a href="${article.source.url}" target="_blank" rel="noopener">Source: ${article.source.title}</a>
+            </div>
+        </div>
+    `;
+    articlesContainer.insertAdjacentHTML('beforeend', articleHtml);
+}
 
 // Reset
 $('resetBtn').addEventListener('click', () => {

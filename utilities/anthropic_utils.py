@@ -1,4 +1,4 @@
-import json,re,base64,concurrent.futures
+import json,re,base64
 from anthropic import Anthropic
 from .google_secret_utils import get_secret
 
@@ -29,7 +29,7 @@ Only include articles with real URLs. If you can't find 3, return fewer."""}])
     except: return []
 
 def analyze_style(files=None, sample_content=None):
-    """Analyze writing style from uploaded files or sample content, return style profile string"""
+    """Analyze writing style from uploaded files or sample content"""
     content = []
 
     if sample_content:
@@ -84,20 +84,18 @@ ARTICLE_ANGLES = [
     "Open with your honest reaction - what made you stop and think? Be genuinely reflective."
 ]
 
-def generate_articles(sources, style):
-    """Generate one article per source in the user's style, each with a different angle"""
-    articles = []
-    for i, src in enumerate(sources):
-        angle = ARTICLE_ANGLES[i % len(ARTICLE_ANGLES)]
+def generate_single_article(source, style, index):
+    """Generate a single article for one source"""
+    angle = ARTICLE_ANGLES[index % len(ARTICLE_ANGLES)]
 
-        r = get_client().messages.create(
-            model="claude-sonnet-4-20250514", max_tokens=1500,
-            messages=[{"role": "user", "content": f"""You are ghostwriting a LinkedIn post for a specific author. Your job is to channel their THINKING and PERSPECTIVE, not just mimic their phrases.
+    r = get_client().messages.create(
+        model="claude-sonnet-4-20250514", max_tokens=1500,
+        messages=[{"role": "user", "content": f"""You are ghostwriting a LinkedIn post for a specific author. Your job is to channel their THINKING and PERSPECTIVE, not just mimic their phrases.
 
 ARTICLE TO WRITE ABOUT:
-Title: {src['title']}
-URL: {src['url']}
-Summary: {src['summary']}
+Title: {source['title']}
+URL: {source['url']}
+Summary: {source['summary']}
 
 THE AUTHOR'S VOICE (channel the spirit, not just the words):
 {style}
@@ -117,12 +115,5 @@ GUIDELINES:
 The goal: if the author read this, they'd think "I wish I'd written that" - not "that sounds like a template."
 
 Output ONLY the post text."""}])
-        articles.append({"content": r.content[0].text, "source": src})
-    return articles
 
-def fetch_and_analyze(topic, files=None, sample_content=None):
-    """Run source search and style analysis in parallel"""
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
-        sources_future = ex.submit(search_sources, topic)
-        style_future = ex.submit(analyze_style, files, sample_content)
-        return sources_future.result(), style_future.result()
+    return {"content": r.content[0].text, "source": source}

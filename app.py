@@ -1,6 +1,7 @@
 import os
-from flask import Flask, render_template, request, jsonify
-from utilities.anthropic_utils import fetch_and_analyze, generate_articles
+from flask import Flask, render_template, request, jsonify, Response
+import json
+from utilities.anthropic_utils import search_sources, analyze_style, generate_single_article
 
 app = Flask(__name__)
 
@@ -22,11 +23,11 @@ def home():
 
 @app.route('/generate', methods=['POST'])
 def generate():
+    """Stream articles as they're generated using SSE"""
     custom_topic = request.form.get('custom_topic', '').strip()
     files = request.files.getlist('files')
     use_sample_style = request.form.get('use_sample_style') == 'on'
 
-    # Filter out empty file uploads
     files = [f for f in files if f.filename]
 
     if not files and not use_sample_style:
@@ -35,7 +36,6 @@ def generate():
     if not custom_topic:
         return jsonify({"error": "Enter a topic to write about"}), 400
 
-    # Use sample style file if checkbox is checked and no files uploaded
     sample_content = None
     if use_sample_style and not files:
         try:
@@ -44,16 +44,34 @@ def generate():
         except FileNotFoundError:
             return jsonify({"error": "Sample style file not found"}), 500
 
-    # Parallel: fetch sources + analyze style
-    sources, style = fetch_and_analyze(custom_topic, files, sample_content)
+    def generate_stream():
+        # First, send status update
+        yield f"data: {json.dumps({'type': 'status', 'message': 'Searching for articles...'})}\n\n"
 
-    if not sources:
-        return jsonify({"error": f"No articles found for '{custom_topic}'"}), 404
+        # Search for sources
+        sources = search_sources(custom_topic)
+        if not sources:
+            yield f"data: {json.dumps({'type': 'error', 'message': f'No articles found for {custom_topic}'})}\n\n"
+            return
 
-    # Generate articles
-    articles = generate_articles(sources, style)
+        yield f"data: {json.dumps({'type': 'status', 'message': f'Found {len(sources)} sources. Analyzing style...'})}\n\n"
 
-    return jsonify({"articles": articles, "style": style, "topic": custom_topic})
+        # Analyze style
+        style = analyze_style(files, sample_content)
+
+        yield f"data: {json.dumps({'type': 'status', 'message': 'Generating articles...'})}\n\n"
+        yield f"data: {json.dumps({'type': 'style', 'style': style})}\n\n"
+
+        # Generate and stream each article
+        for i, src in enumerate(sources):
+            yield f"data: {json.dumps({'type': 'status', 'message': f'Writing article {i+1} of {len(sources)}...'})}\n\n"
+
+            article = generate_single_article(src, style, i)
+            yield f"data: {json.dumps({'type': 'article', 'index': i, 'article': article})}\n\n"
+
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return Response(generate_stream(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -870,6 +870,48 @@ footer p {
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* Streaming status */
+.stream-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--accent-light) 0%, rgba(168, 85, 247, 0.1) 100%);
+  border-radius: 10px;
+  margin-bottom: 24px;
+  font-size: 0.9375rem;
+  color: var(--accent);
+  font-weight: 500;
+  transition: opacity 0.3s;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* Article animation */
+.article-animate {
+  animation: slideIn 0.4s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Utilities */
 .hidden { display: none !important; }
 
