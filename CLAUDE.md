@@ -36,6 +36,19 @@ gcloud_deploy.py           # Deployment script with version management
    - `generate_single_article()` creates articles one-by-one, streamed to frontend
 3. Frontend displays articles progressively as they arrive
 
+## SSE Event Types
+
+The `/generate` endpoint streams these event types:
+- `status` - Progress updates (searching, analyzing, writing)
+- `sources` - Number of sources found
+- `article` - Complete article with index
+- `error` - Error message
+- `done` - Generation complete
+
+## Claude API
+
+Uses `claude-sonnet-4-20250514` with `web_search_20250305` tool for source discovery.
+
 ## API Keys
 
 Google Secret Manager (project: `kumori-404602`):

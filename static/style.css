@@ -722,6 +722,13 @@ nav .wrapper {
   box-shadow: none;
 }
 
+.free-note {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
 /* Loading */
 .loading-state { text-align: center; padding: 60px 0; }
 

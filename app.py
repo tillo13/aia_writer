@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 import json
 from utilities.anthropic_utils import search_sources, analyze_style, generate_single_article
+from utilities.content_filter import check_content_filter
 
 app = Flask(__name__)
 
@@ -35,6 +36,11 @@ def generate():
 
     if not custom_topic:
         return jsonify({"error": "Enter a topic to write about"}), 400
+
+    # Content filter check
+    is_allowed, filter_error = check_content_filter(custom_topic)
+    if not is_allowed:
+        return jsonify({"error": filter_error}), 400
 
     sample_content = None
     if use_sample_style and not files:
