@@ -190,9 +190,32 @@
                         </div>
 
                         <div id="loadingState" class="loading-state hidden">
-                            <div class="spinner"></div>
-                            <h4 id="loadingTitle">Analyzing your writing style</h4>
-                            <p id="loadingDesc">This usually takes 20-30 seconds</p>
+                            <div class="loading-visual">
+                                <div class="loading-orb"></div>
+                                <div class="loading-rings">
+                                    <div class="ring ring-1"></div>
+                                    <div class="ring ring-2"></div>
+                                    <div class="ring ring-3"></div>
+                                </div>
+                            </div>
+                            <h4 id="loadingTitle">Starting up...</h4>
+                            <p id="loadingDesc">Connecting to AI</p>
+                            <div class="progress-steps">
+                                <div class="progress-step" id="step-search">
+                                    <div class="step-icon">1</div>
+                                    <span>Find sources</span>
+                                </div>
+                                <div class="progress-connector"></div>
+                                <div class="progress-step" id="step-analyze">
+                                    <div class="step-icon">2</div>
+                                    <span>Analyze style</span>
+                                </div>
+                                <div class="progress-connector"></div>
+                                <div class="progress-step" id="step-generate">
+                                    <div class="step-icon">3</div>
+                                    <span>Write articles</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div id="resultsState" class="hidden">

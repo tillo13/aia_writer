@@ -17,22 +17,24 @@ python gcloud_deploy.py          # deploy to App Engine
 ## Architecture
 
 ```
-app.py                      # Flask routes (~40 lines)
+app.py                      # Flask routes with SSE streaming
 utilities/
-  anthropic_utils.py        # Claude API: search, analyze, generate (~80 lines)
-  google_secret_utils.py    # Secret Manager (~5 lines)
+  anthropic_utils.py        # Claude API: web search, style analysis, article generation
+  google_secret_utils.py    # Secret Manager
 templates/index.html        # Single page UI
-static/app.js              # Frontend logic (~70 lines)
-static/style.css           # Dark theme
+static/app.js              # Frontend logic with SSE handling
+static/style.css           # Styles
+gcloud_deploy.py           # Deployment script with version management
 ```
 
 ## Flow
 
-1. User picks topic → `search_sources(topic)` finds 3 articles via Claude web search
-2. User uploads samples → `analyze_style(files)` extracts writing voice
-3. Both run in parallel via `fetch_and_analyze()`
-4. `generate_articles(sources, style)` creates one article per source
-5. Each article includes source URL for verification
+1. User enters topic + uploads writing samples (or uses sample style)
+2. `/generate` endpoint streams via SSE:
+   - `search_sources(topic)` finds 3 articles via Claude web search tool
+   - `analyze_style(files)` extracts writing voice from samples
+   - `generate_single_article()` creates articles one-by-one, streamed to frontend
+3. Frontend displays articles progressively as they arrive
 
 ## API Keys
 

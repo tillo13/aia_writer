@@ -14,6 +14,7 @@ const articlesContainer = $('articlesContainer');
 const useSampleStyle = $('useSampleStyle');
 
 let hasFiles = false;
+let sourceCount = 0;
 
 // Topic quick-select buttons
 document.querySelectorAll('.topic-btn').forEach(btn => {
@@ -78,19 +79,106 @@ function updateSubmitState() {
     submitBtn.disabled = !(topicValid && styleValid);
 }
 
+// Progress step management
+function setProgressStep(step) {
+    const steps = ['search', 'analyze', 'generate'];
+    const connectors = document.querySelectorAll('.progress-connector');
+
+    steps.forEach((s, i) => {
+        const el = $(`step-${s}`);
+        const stepIndex = steps.indexOf(step);
+
+        if (i < stepIndex) {
+            el.classList.remove('active');
+            el.classList.add('completed');
+            if (connectors[i]) connectors[i].classList.add('active');
+        } else if (i === stepIndex) {
+            el.classList.add('active');
+            el.classList.remove('completed');
+        } else {
+            el.classList.remove('active', 'completed');
+            if (connectors[i]) connectors[i].classList.remove('active');
+        }
+    });
+}
+
+function resetProgressSteps() {
+    ['search', 'analyze', 'generate'].forEach(s => {
+        const el = $(`step-${s}`);
+        el.classList.remove('active', 'completed');
+    });
+    document.querySelectorAll('.progress-connector').forEach(c => c.classList.remove('active'));
+}
+
+// Skeleton management
+function createSkeletons(count) {
+    let html = '';
+    for (let i = 0; i < count; i++) {
+        html += `
+            <div class="article-skeleton" id="skeleton-${i}">
+                <div class="skeleton-header">
+                    <div class="skeleton-label"></div>
+                    <div class="skeleton-btn"></div>
+                </div>
+                <div class="skeleton-body">
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line medium"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line short"></div>
+                </div>
+                <div class="skeleton-footer">
+                    <div class="skeleton-link"></div>
+                </div>
+            </div>
+        `;
+    }
+    return html;
+}
+
+function showWritingIndicator(articleNum, total) {
+    let indicator = $('writingIndicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'writingIndicator';
+        indicator.className = 'writing-indicator';
+        articlesContainer.parentNode.insertBefore(indicator, articlesContainer);
+    }
+    indicator.innerHTML = `
+        <div class="writing-dots">
+            <div class="writing-dot"></div>
+            <div class="writing-dot"></div>
+            <div class="writing-dot"></div>
+        </div>
+        <span>Writing article ${articleNum} of ${total}...</span>
+    `;
+}
+
+function hideWritingIndicator() {
+    const indicator = $('writingIndicator');
+    if (indicator) {
+        indicator.style.opacity = '0';
+        setTimeout(() => indicator.remove(), 300);
+    }
+}
+
 // Form submission with SSE streaming
 form.addEventListener('submit', async e => {
     e.preventDefault();
     if (submitBtn.disabled) return;
 
+    // Reset state
+    sourceCount = 0;
     step1.classList.add('hidden');
     loadingState.classList.remove('hidden');
     errorState.classList.add('hidden');
     resultsState.classList.add('hidden');
     articlesContainer.innerHTML = '';
+    resetProgressSteps();
 
-    loadingTitle.textContent = 'Starting...';
-    loadingDesc.textContent = 'Connecting to AI';
+    loadingTitle.textContent = 'Searching for articles...';
+    loadingDesc.textContent = 'Finding relevant sources on your topic';
+    setProgressStep('search');
 
     try {
         const formData = new FormData(form);
@@ -110,10 +198,6 @@ form.addEventListener('submit', async e => {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-
-        // Show results container immediately
-        loadingState.classList.add('hidden');
-        resultsState.classList.remove('hidden');
 
         while (true) {
             const { done, value } = await reader.read();
@@ -148,15 +232,24 @@ form.addEventListener('submit', async e => {
 function handleStreamEvent(data) {
     switch (data.type) {
         case 'status':
-            // Update status in results header or show a status bar
-            updateStatus(data.message);
+            updateLoadingStatus(data.message);
+            break;
+
+        case 'sources':
+            sourceCount = data.count;
+            // Transition to results view with skeletons
+            loadingState.classList.add('hidden');
+            resultsState.classList.remove('hidden');
+            articlesContainer.innerHTML = createSkeletons(sourceCount);
             break;
 
         case 'article':
-            appendArticle(data.article, data.index);
+            // Replace skeleton with real article
+            replaceSkeletonWithArticle(data.article, data.index);
             break;
 
         case 'error':
+            loadingState.classList.add('hidden');
             resultsState.classList.add('hidden');
             errorState.textContent = data.message;
             errorState.classList.remove('hidden');
@@ -164,44 +257,68 @@ function handleStreamEvent(data) {
             break;
 
         case 'done':
-            hideStatus();
+            hideWritingIndicator();
             break;
     }
 }
 
-function updateStatus(message) {
-    let statusEl = $('streamStatus');
-    if (!statusEl) {
-        statusEl = document.createElement('div');
-        statusEl.id = 'streamStatus';
-        statusEl.className = 'stream-status';
-        articlesContainer.parentNode.insertBefore(statusEl, articlesContainer);
+function updateLoadingStatus(message) {
+    const lowerMsg = message.toLowerCase();
+
+    if (lowerMsg.includes('searching')) {
+        loadingTitle.textContent = 'Searching for articles...';
+        loadingDesc.textContent = 'Finding relevant sources on your topic';
+        setProgressStep('search');
+    } else if (lowerMsg.includes('found') && lowerMsg.includes('source')) {
+        loadingTitle.textContent = 'Sources found!';
+        loadingDesc.textContent = message;
+        // Mark search as complete, move to analyze
+        $('step-search').classList.remove('active');
+        $('step-search').classList.add('completed');
+        document.querySelectorAll('.progress-connector')[0].classList.add('active');
+        setProgressStep('analyze');
+    } else if (lowerMsg.includes('analyz')) {
+        loadingTitle.textContent = 'Analyzing your style...';
+        loadingDesc.textContent = 'Learning your unique writing voice';
+        setProgressStep('analyze');
+    } else if (lowerMsg.includes('style analyzed')) {
+        loadingTitle.textContent = 'Style captured!';
+        loadingDesc.textContent = 'Ready to write in your voice';
+        $('step-analyze').classList.remove('active');
+        $('step-analyze').classList.add('completed');
+        document.querySelectorAll('.progress-connector')[1].classList.add('active');
+    } else if (lowerMsg.includes('writing article')) {
+        // Extract article number from message like "Writing article 1 of 3..."
+        const match = message.match(/article (\d+) of (\d+)/i);
+        if (match) {
+            showWritingIndicator(match[1], match[2]);
+        }
+        setProgressStep('generate');
     }
-    statusEl.innerHTML = `<div class="status-dot"></div><span>${message}</span>`;
 }
 
-function hideStatus() {
-    const statusEl = $('streamStatus');
-    if (statusEl) {
-        statusEl.style.opacity = '0';
-        setTimeout(() => statusEl.remove(), 300);
+function replaceSkeletonWithArticle(article, index) {
+    const skeleton = $(`skeleton-${index}`);
+    if (skeleton) {
+        const articleHtml = `
+            <div class="article-card article-animate">
+                <div class="article-header">
+                    <span class="article-label">Article ${index + 1}</span>
+                    <button type="button" class="copy-btn" onclick="copyText(this, 'article${index}')">Copy</button>
+                </div>
+                <div class="article-body" id="article${index}">${escapeHtml(article.content)}</div>
+                <div class="article-footer">
+                    <a href="${article.source.url}" target="_blank" rel="noopener">Source: ${escapeHtml(article.source.title)}</a>
+                </div>
+            </div>
+        `;
+        skeleton.outerHTML = articleHtml;
     }
-}
 
-function appendArticle(article, index) {
-    const articleHtml = `
-        <div class="article-card article-animate" style="animation-delay: ${index * 0.1}s">
-            <div class="article-header">
-                <span class="article-label">Article ${index + 1}</span>
-                <button type="button" class="copy-btn" onclick="copyText(this, 'article${index}')">Copy</button>
-            </div>
-            <div class="article-body" id="article${index}">${escapeHtml(article.content)}</div>
-            <div class="article-footer">
-                <a href="${article.source.url}" target="_blank" rel="noopener">Source: ${article.source.title}</a>
-            </div>
-        </div>
-    `;
-    articlesContainer.insertAdjacentHTML('beforeend', articleHtml);
+    // Update writing indicator for next article
+    if (index < sourceCount - 1) {
+        showWritingIndicator(index + 2, sourceCount);
+    }
 }
 
 // Reset
@@ -214,6 +331,7 @@ $('resetBtn').addEventListener('click', () => {
     hasFiles = false;
     submitBtn.disabled = true;
     errorState.classList.add('hidden');
+    hideWritingIndicator();
 });
 
 function escapeHtml(text) {
