@@ -120,7 +120,7 @@ def deploy_app():
     yaml_path = os.path.join(current_dir, "app.yaml")
     
     print_separator()
-    print("Deploying AIA Writer to Google App Engine...")
+    print("Deploying Me-ish to Google App Engine...")
     print(f"Project: {EXPECTED_PROJECT_ID}")
     print(f"Service: {SERVICE_NAME}")
     print_separator()

@@ -1,4 +1,4 @@
-# AIA - AI-Powered Writing Style Cloning
+# Me-ish - AI-Powered Writing Style Cloning
 
 **Live at:** [meish.cc](https://meish.cc)
 

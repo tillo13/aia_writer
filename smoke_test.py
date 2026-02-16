@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Smoke Test for AIA (meish.cc)
+Smoke Test for Me-ish (meish.cc)
 
 Tests rate limiting, content filtering, and basic functionality
 before deploying to production.
@@ -39,7 +39,7 @@ def test_homepage(base_url):
     print_test("Homepage loads")
     try:
         r = requests.get(base_url, timeout=10)
-        if r.status_code == 200 and 'AIA' in r.text:
+        if r.status_code == 200 and 'Me-ish' in r.text:
             print_pass(f"Homepage loaded (status {r.status_code})")
             return True
         else:
@@ -195,7 +195,7 @@ def test_missing_topic(base_url):
 def run_all_tests(base_url):
     """Run all smoke tests"""
     print(f"{BLUE}{'='*70}{RESET}")
-    print(f"{BLUE}AIA Smoke Tests{RESET}")
+    print(f"{BLUE}Me-ish Smoke Tests{RESET}")
     print(f"{BLUE}{'='*70}{RESET}")
     print(f"Testing: {base_url}")
 
