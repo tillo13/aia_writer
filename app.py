@@ -1,10 +1,20 @@
 import os
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 import json
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from utilities.anthropic_utils import search_sources, analyze_style, generate_single_article
 from utilities.content_filter import check_content_filter
 
 app = Flask(__name__)
+
+# Rate limiter - prevents abuse and controls costs
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["100 per hour"],  # General site limit
+    storage_uri="memory://"
+)
 
 TOPICS = {
     "tech": "AI and technology news",
@@ -23,8 +33,13 @@ def home():
     return render_template('index.html', topics=TOPICS)
 
 @app.route('/generate', methods=['POST'])
+@limiter.limit("10 per hour")  # Strict limit on expensive AI endpoint
 def generate():
-    """Stream articles as they're generated using SSE"""
+    """Stream articles as they're generated using SSE
+
+    Rate limited to 10 requests per hour per IP to prevent abuse
+    and control API costs (~$0.12 per request)
+    """
     custom_topic = request.form.get('custom_topic', '').strip()
     files = request.files.getlist('files')
     use_sample_style = request.form.get('use_sample_style') == 'on'

@@ -1,4 +1,5 @@
 flask
+Flask-Limiter
 anthropic
 google-cloud-secret-manager
 gunicorn==21.2.0
