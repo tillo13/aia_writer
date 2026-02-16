@@ -176,8 +176,8 @@ form.addEventListener('submit', async e => {
     articlesContainer.innerHTML = '';
     resetProgressSteps();
 
-    loadingTitle.textContent = 'Searching for articles...';
-    loadingDesc.textContent = 'Finding relevant sources on your topic';
+    loadingTitle.textContent = 'Starting generation...';
+    loadingDesc.textContent = 'This takes about 60 seconds — searching, analyzing, and writing in your voice';
     setProgressStep('search');
 
     try {
@@ -267,7 +267,7 @@ function updateLoadingStatus(message) {
 
     if (lowerMsg.includes('searching')) {
         loadingTitle.textContent = 'Searching for articles...';
-        loadingDesc.textContent = 'Finding relevant sources on your topic';
+        loadingDesc.textContent = 'Finding relevant sources on your topic (~10-15 seconds)';
         setProgressStep('search');
     } else if (lowerMsg.includes('found') && lowerMsg.includes('source')) {
         loadingTitle.textContent = 'Sources found!';
@@ -279,7 +279,7 @@ function updateLoadingStatus(message) {
         setProgressStep('analyze');
     } else if (lowerMsg.includes('analyz')) {
         loadingTitle.textContent = 'Analyzing your style...';
-        loadingDesc.textContent = 'Learning your unique writing voice';
+        loadingDesc.textContent = 'Learning your unique writing voice (~10-15 seconds)';
         setProgressStep('analyze');
     } else if (lowerMsg.includes('style analyzed')) {
         loadingTitle.textContent = 'Style captured!';
