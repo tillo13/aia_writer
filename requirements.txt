@@ -1,6 +1,6 @@
 flask
 Flask-Limiter
-anthropic
 google-cloud-secret-manager
 gunicorn==21.2.0
+psycopg2-binary
 requests

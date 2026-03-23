@@ -1,26 +1,110 @@
-import json,re,base64
-from anthropic import Anthropic
+import json,re,base64,logging,time,os,requests as _requests
+import psycopg2
 from .google_secret_utils import get_secret
 
-client = None
-def get_client():
-    global client
-    if not client: client = Anthropic(api_key=get_secret('KUMORI_ANTHROPIC_API_KEY'))
-    return client
+logger = logging.getLogger(__name__)
+
+API_URL = "https://api.anthropic.com/v1/messages"
+_api_key = None
+
+def _get_headers():
+    global _api_key
+    if not _api_key: _api_key = get_secret('KUMORI_ANTHROPIC_API_KEY')
+    return {'x-api-key': _api_key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json'}
+
+# --- API usage tracking ---
+APP_NAME = 'aia'
+_PRICING = {
+    'haiku-4-5': {'input': 0.000001, 'output': 0.000005},
+    'sonnet-4': {'input': 0.000003, 'output': 0.000015},
+    'sonnet-4-5': {'input': 0.000003, 'output': 0.000015},
+    'opus-4-5': {'input': 0.000005, 'output': 0.000025},
+    'opus-4-6': {'input': 0.000005, 'output': 0.000025},
+}
+
+def _get_pricing(model):
+    m = model.lower()
+    for k, v in _PRICING.items():
+        if k in m: return v
+    return {'input': 0.000003, 'output': 0.000015}
+
+def log_api_usage(model, usage, feature=None, streaming=False,
+                  image_count=0, user_id=None, duration_ms=None):
+    """Log an API call to kumori_api_usage in a background thread.
+    Never blocks the caller. Never raises."""
+    import threading
+
+    def _do_log():
+        try:
+            pricing = _get_pricing(model)
+            input_tokens = usage.get('input_tokens', 0) if isinstance(usage, dict) else 0
+            output_tokens = usage.get('output_tokens', 0) if isinstance(usage, dict) else 0
+            cache_creation = usage.get('cache_creation_input_tokens', 0) if isinstance(usage, dict) else 0
+            cache_read = usage.get('cache_read_input_tokens', 0) if isinstance(usage, dict) else 0
+            thinking = usage.get('thinking_tokens', 0) if isinstance(usage, dict) else 0
+            server_tools = usage.get('server_tool_use') if isinstance(usage, dict) else None
+            server_tools = server_tools or {}
+            web_searches = server_tools.get('web_search_requests', 0) if isinstance(server_tools, dict) else 0
+            web_fetches = server_tools.get('web_fetch_requests', 0) if isinstance(server_tools, dict) else 0
+            code_exec = server_tools.get('code_execution_requests', 0) if isinstance(server_tools, dict) else 0
+            cost = (input_tokens * pricing['input'] + output_tokens * pricing['output']
+                    + cache_creation * pricing['input'] * 1.25 + cache_read * pricing['input'] * 0.1
+                    + thinking * pricing['output'] + web_searches * 0.01)
+            is_gcp = os.environ.get('GAE_ENV', '').startswith('standard')
+            host = f"/cloudsql/{get_secret('KUMORI_POSTGRES_CONNECTION_NAME')}" if is_gcp else get_secret('KUMORI_POSTGRES_IP')
+            conn = psycopg2.connect(host=host,
+                database=get_secret('KUMORI_POSTGRES_DB_NAME'),
+                user=get_secret('KUMORI_POSTGRES_USERNAME'),
+                password=get_secret('KUMORI_POSTGRES_PASSWORD'),
+                connect_timeout=5)
+            try:
+                cur = conn.cursor()
+                cur.execute("""INSERT INTO kumori_api_usage
+                    (app_name, feature, model, input_tokens, output_tokens,
+                     cache_creation_tokens, cache_read_tokens, thinking_tokens,
+                     web_search_requests, web_fetch_requests, code_execution_requests,
+                     image_count, estimated_cost_usd, streaming, user_id, duration_ms)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (APP_NAME, feature, model, input_tokens, output_tokens,
+                     cache_creation, cache_read, thinking, web_searches, web_fetches,
+                     code_exec, image_count, cost, streaming, user_id, duration_ms))
+                conn.commit()
+                cur.close()
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning(f"Failed to log API usage: {e}")
+
+    threading.Thread(target=_do_log, daemon=True).start()
+
+def _call_claude(body, timeout=60):
+    start = time.time()
+    r = _requests.post(API_URL, headers=_get_headers(), json=body, timeout=timeout)
+    r.raise_for_status()
+    data = r.json()
+    elapsed_ms = int((time.time() - start) * 1000)
+    if 'usage' in data:
+        feature = 'search' if body.get('tools') else 'generate'
+        image_count = sum(1 for m in body.get('messages', [])
+                         for c in (m.get('content', []) if isinstance(m.get('content'), list) else [])
+                         if isinstance(c, dict) and c.get('type') in ('image', 'document'))
+        log_api_usage(body.get('model', 'unknown'), data['usage'],
+                      feature=feature, image_count=image_count, duration_ms=elapsed_ms)
+    return data
 
 def search_sources(topic):
     """Search for 3 articles on topic, return list of {title, url, summary}"""
-    r = get_client().messages.create(
-        model="claude-sonnet-4-20250514", max_tokens=2000,
-        tools=[{"type": "web_search_20250305", "name": "web_search"}],
-        messages=[{"role": "user", "content": f"""Search for 3 recent news articles about: {topic}
+    data = _call_claude({
+        'model': "claude-sonnet-4-20250514", 'max_tokens': 2000,
+        'tools': [{"type": "web_search_20250305", "name": "web_search"}],
+        'messages': [{"role": "user", "content": f"""Search for 3 recent news articles about: {topic}
 
 Return ONLY valid JSON array, no other text:
 [{{"title": "...", "url": "https://...", "summary": "2-3 sentence summary"}}]
 
-Only include articles with real URLs. If you can't find 3, return fewer."""}])
+Only include articles with real URLs. If you can't find 3, return fewer."""}]})
 
-    text = ''.join(b.text for b in r.content if hasattr(b, 'text'))
+    text = ''.join(b['text'] for b in data['content'] if b.get('type') == 'text')
     match = re.search(r'\[.*\]', text, re.DOTALL)
     if not match: return []
     try:
@@ -80,8 +164,8 @@ Extract the ESSENCE of how they think and communicate:
 
 Output a style guide that captures the SPIRIT of this writer, not just surface patterns. A good ghostwriter channels the author's thinking, not just their verbal tics."""})
 
-    r = get_client().messages.create(model="claude-sonnet-4-20250514", max_tokens=1500, messages=[{"role": "user", "content": content}])
-    return r.content[0].text
+    data = _call_claude({'model': "claude-sonnet-4-20250514", 'max_tokens': 1500, 'messages': [{"role": "user", "content": content}]})
+    return data['content'][0]['text']
 
 ARTICLE_ANGLES = [
     "Lead with the most surprising or counterintuitive insight. Challenge conventional thinking.",
@@ -93,9 +177,9 @@ def generate_single_article(source, style, index):
     """Generate a single article for one source"""
     angle = ARTICLE_ANGLES[index % len(ARTICLE_ANGLES)]
 
-    r = get_client().messages.create(
-        model="claude-sonnet-4-20250514", max_tokens=1500,
-        messages=[{"role": "user", "content": f"""You are ghostwriting a LinkedIn post for a specific author. Your job is to channel their THINKING and PERSPECTIVE, not just mimic their phrases.
+    data = _call_claude({
+        'model': "claude-sonnet-4-20250514", 'max_tokens': 1500,
+        'messages': [{"role": "user", "content": f"""You are ghostwriting a LinkedIn post for a specific author. Your job is to channel their THINKING and PERSPECTIVE, not just mimic their phrases.
 
 ARTICLE TO WRITE ABOUT:
 Title: {source['title']}
@@ -119,6 +203,6 @@ GUIDELINES:
 
 The goal: if the author read this, they'd think "I wish I'd written that" - not "that sounds like a template."
 
-Output ONLY the post text."""}])
+Output ONLY the post text."""}]})
 
-    return {"content": r.content[0].text, "source": source}
+    return {"content": data['content'][0]['text'], "source": source}
