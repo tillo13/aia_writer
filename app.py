@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 import json
 from flask_limiter import Limiter
@@ -7,6 +8,8 @@ from utilities.anthropic_utils import search_sources, analyze_style, generate_si
 from utilities.content_filter import check_content_filter
 
 app = Flask(__name__)
+
+DOMAIN = "https://meish.cc"
 
 # Rate limiter - prevents abuse and controls costs
 limiter = Limiter(
@@ -31,6 +34,32 @@ SAMPLE_STYLE_PATH = os.path.join(os.path.dirname(__file__), 'static', 'files', '
 @app.route('/')
 def home():
     return render_template('index.html', topics=TOPICS)
+
+@app.route('/sitemap.xml')
+def sitemap():
+    today = datetime.utcnow().strftime('%Y-%m-%d')
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>{DOMAIN}/</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>"""
+    return Response(xml, mimetype='application/xml')
+
+@app.route('/robots.txt')
+def robots():
+    txt = f"""User-agent: *
+Allow: /
+
+Sitemap: {DOMAIN}/sitemap.xml"""
+    return Response(txt, mimetype='text/plain')
+
+@app.route('/b4c9ebbc8faa4d7b8b2b8104b6511fee.txt')
+def indexnow_key():
+    return Response('b4c9ebbc8faa4d7b8b2b8104b6511fee', mimetype='text/plain')
 
 @app.route('/generate', methods=['POST'])
 @limiter.limit("10 per hour")  # Strict limit on expensive AI endpoint

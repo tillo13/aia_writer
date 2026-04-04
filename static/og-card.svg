@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="100%" stop-color="#1a1040"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#635bff"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="950" cy="180" r="200" fill="#635bff" opacity="0.08"/>
+  <circle cx="1000" cy="400" r="120" fill="#a78bfa" opacity="0.06"/>
+  <circle cx="200" cy="500" r="150" fill="#635bff" opacity="0.05"/>
+
+  <!-- Accent bar -->
+  <rect x="100" y="200" width="6" height="120" rx="3" fill="url(#accent)"/>
+
+  <!-- Logo mark -->
+  <rect x="100" y="80" width="56" height="56" rx="14" fill="#635bff"/>
+  <text x="128" y="118" text-anchor="middle" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="30" font-weight="bold">A</text>
+
+  <!-- Brand name -->
+  <text x="172" y="118" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="600" opacity="0.9">Me-ish</text>
+
+  <!-- Headline -->
+  <text x="124" y="248" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="56" font-weight="700">AI Content That</text>
+  <text x="124" y="312" fill="url(#accent)" font-family="system-ui, -apple-system, sans-serif" font-size="56" font-weight="700">Sounds Like You</text>
+
+  <!-- Subhead -->
+  <text x="124" y="380" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="24" opacity="0.6">Upload your writing style. Get publication-ready articles.</text>
+  <text x="124" y="414" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="24" opacity="0.6">Free. No signup. Sourced from real news.</text>
+
+  <!-- URL -->
+  <text x="124" y="530" fill="#635bff" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="500">meish.cc</text>
+</svg>
