@@ -35,8 +35,10 @@ nav {
   right: 0;
   z-index: 100;
   padding: 16px 0;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(10, 37, 64, 0.08);
 }
 
 nav .wrapper {
@@ -55,13 +57,13 @@ nav .wrapper {
 
 .nav-links { display: flex; gap: 32px; align-items: center; }
 .nav-links a {
-  color: var(--text-light);
+  color: var(--text-dark);
   text-decoration: none;
   font-size: 0.9375rem;
   font-weight: 500;
   transition: color 0.2s;
 }
-.nav-links a:hover { color: var(--text-dark); }
+.nav-links a:hover { color: #635bff; }
 
 /* Hero with gradient */
 .hero {
