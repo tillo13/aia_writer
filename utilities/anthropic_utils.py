@@ -77,7 +77,7 @@ def log_api_usage(model, usage, feature=None, streaming=False,
 
     threading.Thread(target=_do_log, daemon=True).start()
 
-def _call_claude(body, timeout=60):
+def _call_claude(body, timeout=60, user_id=None):
     start = time.time()
     r = _requests.post(API_URL, headers=_get_headers(), json=body, timeout=timeout)
     r.raise_for_status()
@@ -89,7 +89,8 @@ def _call_claude(body, timeout=60):
                          for c in (m.get('content', []) if isinstance(m.get('content'), list) else [])
                          if isinstance(c, dict) and c.get('type') in ('image', 'document'))
         log_api_usage(body.get('model', 'unknown'), data['usage'],
-                      feature=feature, image_count=image_count, duration_ms=elapsed_ms)
+                      feature=feature, image_count=image_count, duration_ms=elapsed_ms,
+                      user_id=user_id or 'system:aia')
     return data
 
 def search_sources(topic):
