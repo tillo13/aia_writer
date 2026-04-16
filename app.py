@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context, redirect
 import json
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -10,6 +10,13 @@ from utilities.content_filter import check_content_filter
 app = Flask(__name__)
 
 DOMAIN = "https://meish.cc"
+
+
+@app.before_request
+def force_canonical_host():
+    host = request.headers.get('Host', '')
+    if host.startswith('www.'):
+        return redirect(f'https://meish.cc{request.full_path}', code=301)
 
 # Rate limiter - prevents abuse and controls costs
 limiter = Limiter(
