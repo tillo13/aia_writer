@@ -1,5 +1,11 @@
 {
-    "project_id": "aia-writer-2025",
-    "app_name": "AIA Writer",
-    "github_repo": "https://github.com/tillo13/aia_writer.git"
+  "project_id": "aia-writer-2025",
+  "app_name": "AIA Writer",
+  "github_repo": "https://github.com/tillo13/aia_writer.git",
+  "shared_files": [
+    {
+      "src": "anthropic_logger/anthropic_logger.py",
+      "dst": "utilities/anthropic_logger.py"
+    }
+  ]
 }
